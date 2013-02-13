@@ -78,7 +78,7 @@ sudo debootstrap --arch "$ARCH" --variant=minbase --foreign "$RELEASE" "$TMP_DIR
 echo "nameserver 8.8.8.8" | sudo tee "$TMP_DIR"/etc/resolv.conf
 echo "nameserver 8.8.4.4" | sudo tee -a "$TMP_DIR"/etc/resolv.conf
 echo "android" | sudo tee "$TMP_DIR"/etc/hostname
-echo "deb http://ports.ubuntu.com/ubuntu-ports/ $RELEASE main restricted universe multiverse" >> "$TMP_DIR"/etc/apt/sources.list
+echo "deb http://ports.ubuntu.com/ubuntu-ports/ $RELEASE main restricted universe multiverse" | sudo tee "$TMP_DIR"/etc/apt/sources.list
 echo "127.0.0.1 localhost android" | sudo tee "$TMP_DIR"/etc/hosts
 
 # Unmount
@@ -92,8 +92,8 @@ rm -rf "$TMP_DIR"
 #gzip --best "$IMG_FILE" -c > "$IMG_FILE".gz
 
 # gzip it
-echo Gzip\'ing "$IMG_FILE"
-gzip --best "$IMG_FILE"
+#echo Gzip\'ing "$IMG_FILE"
+#gzip --best "$IMG_FILE"
 
 # Bye
 echo "Generated $IMG_FILE"

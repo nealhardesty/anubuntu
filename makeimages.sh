@@ -4,7 +4,11 @@
 
 # calls prepareimage.sh [releaseVersion(quantal)] [image file] [size in mb]
 
-IMAGES_DIR=`dirname $0`/images
+IMAGES_DIR=`dirname $0`/../anubuntu-images
+if [ ! -d "$IMAGES_DIR" ]; then
+	echo "$IMAGES_DIR" does not exist.
+	exit 1
+fi
 echo IMAGES_DIR="$IMAGES_DIR"
 
 MANIFEST_FILE=MANIFEST.csv
@@ -43,18 +47,20 @@ for distroIndex in ${!distros[@]}; do
 		`dirname $0`/prepareimage.sh "$distro" "$IMAGES_DIR"/"$imageFile" "$size" || exit 2
 		echo "Generated $IMAGES_DIR/$imageFile"
 
+		echo MD5 Sum Generate
+		(cd "$IMAGES_DIR" && md5sum "$imageFile" > "$imageFile".md5)
+
+		echo Gzipping ...
+		(cd "$IMAGES_DIR" && gzip --best "$imageFile")
+
 		echo Splitting $imageFile
-
 		(cd "$IMAGES_DIR" && split -a 1 -d -b 10000000 "$imageFile".gz "$imageFile".gz. )
-
-		md5sum=`md5sum "$IMAGES_DIR"/"$imageFile".gz |cut -d' ' -f1`
-		echo "md5sum: $md5sum"
 
 		numchunks=`ls -1 "$IMAGES_DIR"/*.gz.* |wc -l `
 		echo "chunks: $numchunks"
 
-		echo "$imageFile,$numchunks,$md5sum,$desc"
-		echo "$imageFile,$numchunks,$md5sum,$desc" >> "$IMAGES_DIR"/"$MANIFEST_FILE"
+		echo "$imageFile,$numchunks,$desc"
+		echo "$imageFile,$numchunks,$desc" >> "$IMAGES_DIR"/"$MANIFEST_FILE"
 
 		rm "$IMAGES_DIR"/"$imageFile".gz
 	done
