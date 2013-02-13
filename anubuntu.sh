@@ -137,10 +137,9 @@ initialize() {
 	# Handle the first time setup as necessary:
 	if [ -f "$ROOT_MOUNT"/debootstrap/debootstrap ]; then
 		msg first setup
-		cat <<EOF > "$ROOT_MOUNT"/etc/resolv.conf
-nameserver 8.8.8.8
-nameserver 8.8.4.4
-EOF
+		echo "nameserver 8.8.8.8" > "$ROOT_MOUNT"/etc/resolv.conf
+		echo "nameserver 8.8.4.4" >> "$ROOT_MOUNT"/etc/resolv.conf
+
 		msg running /debootstrap/debootstrap --second-stage
 		doChroot /debootstrap/debootstrap --second-stage
 
@@ -214,13 +213,12 @@ setup() {
 	$BBOX mount --bind /sdcard/ "$ROOT_MOUNT"/sdcard || msg could not mount /sdcard
 
 	msg "build $ROOT_MOUNT/etc/mtab"
-	$BBOX cat <<EOF > "$ROOT_MOUNT"/etc/mtab
-rootfs / rootfs ro,relatime 0 0
-proc /proc proc rw,relatime 0 0
-sysfs /sys sysfs rw,relatime 0 0
-devpts /dev/pts devpts rw,relatime,mode=600 0 0
-/dev/fuse /sdcard fuse rw,noatime 0 0
-EOF
+	
+	echo "rootfs / rootfs ro,relatime 0 0" > "$ROOT_MOUNT"/etc/mtab
+	echo "proc /proc proc rw,relatime 0 0" >> "$ROOT_MOUNT"/etc/mtab
+	echo "sysfs /sys sysfs rw,relatime 0 0" >> "$ROOT_MOUNT"/etc/mtab
+	echo "devpts /dev/pts devpts rw,relatime,mode=600 0 0" >> "$ROOT_MOUNT"/etc/mtab
+	echo "/dev/fuse /sdcard fuse rw,noatime 0 0" >> "$ROOT_MOUNT"/etc/mtab
 
 	if [ -x "$ROOT_MOUNT"/etc/rc.local ]; then
 		# we run /etc/rc.local ONLY
