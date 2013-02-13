@@ -1,4 +1,7 @@
-anubuntu
+anubuntu (ANdroid UBUNTU)
 ========
 
-Scripts to run Ubuntu on an Android device
+A Simple way to Run Ubuntu on Android Devices
+
+
+Copyright 2013 - Neal Hardesty - All Rights Reserved

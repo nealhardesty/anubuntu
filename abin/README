@@ -1,0 +1,24 @@
+This directory is home for some utilities used for testing on the android emulator.
+
+su
+Superuser.apk
+busybox
+
+
+
+su/Superuser.apk binaries:
+http://forum.xda-developers.com/showthread.php?t=682828
+
+
+On Nexus7:
+
+adb shell mount -o remount,rw -t yaffs2 /dev/block/mtdblock0 /system
+adb shell rm /system/bin/su
+adb shell rm /system/xbin/su
+adb push su /system/bin/su
+adb shell chmod 06755 /system/bin/su
+adb shell mount -o remount,rw -t yaffs2 /dev/block/mtdblock0 /system
+adb shell rm /system/app/Superuser.apk
+adb install Superuser.apk
+adb push busybox /system/xbin/busybox
+adb shell /system/xbin/busybox --install /system/xbin/

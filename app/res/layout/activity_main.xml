@@ -1,0 +1,57 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:visibility="invisible" />
+
+    <Switch
+        android:id="@+id/enableSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="30dp"
+        android:checked="false"
+        android:text="@string/enable"
+        android:textSize="24sp" />
+
+    <EditText
+        android:id="@+id/logEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:autoLink="none"
+        android:background="#000000"
+        android:clickable="false"
+        android:duplicateParentState="false"
+        android:ems="12"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:gravity="center_vertical|left|start"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:lines="12"
+        android:linksClickable="false"
+        android:longClickable="false"
+        android:scrollHorizontally="false"
+        android:scrollbars="horizontal|none"
+        android:textAlignment="textStart"
+        android:textColor="#FFFFFF"
+        android:textSize="9sp"
+        android:typeface="monospace"
+        android:visibility="visible" >
+
+        <requestFocus />
+    </EditText>
+
+</RelativeLayout>
