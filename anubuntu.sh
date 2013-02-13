@@ -82,7 +82,9 @@ if [ -z "$EXTRA_PACKAGES" ]; then
 fi
 
 # Check for root
-if [[ ! `$BBOX id |grep 'id=0'` ]]; then die must be root; fi
+checkRootOrDie() {
+	if [[ ! `$BBOX id |grep 'id=0'` ]]; then die must be root; fi
+}
 
 # Guess if we have run setup already or not..
 isSetup=false
@@ -118,6 +120,8 @@ doChroot() {
 # initialize -> first time initialization
 #
 initialize() {
+	checkRootOrDie
+
 	msg begin init
 
 	if $isSetup && ! $FORCE ; then
@@ -182,6 +186,12 @@ initialize() {
 # setup -> needs to be run before a shell is created
 #
 setup() {
+	checkRootOrDie
+
+	if $isSetup && ! $FORCE ; then
+		die looks like setup already run and FORCE '(-f)' not set
+	fi
+
 	msg begin setup
 	msg ROOT_IMAGE=$ROOT_IMAGE
 	msg ROOT_MOUNT=$ROOT_MOUNT
@@ -233,6 +243,8 @@ setup() {
 # teardown -> cleanup
 #
 teardown() {
+	checkRootOrDie
+
 	msg "teardown $ROOT_MOUNT ..."
 	msg "sending SIGINT ..."
 	$BBOX lsof |$BBOX grep -i "$ROOT_MOUNT" | $BBOX awk '{print $1}' |$BBOX uniq |$BBOX xargs kill
@@ -266,8 +278,49 @@ teardown() {
 # help -> help message
 #
 help() {
-	echo Usage: $MYNAME 'init|startup|shutdown|run|help'
-	exit 0
+echo 'Usage: $MYNAME <init|start|stop|run|issetup|download|help> [-f|commands*]'
+echo ''
+echo 'Standard commands:'
+echo '	start *:	setup mounts and preconditions (accepts -f for force)'
+echo '			[aliases: startup setup]'
+echo ''
+echo '	stop *:		teardown mounts and kill processes '
+echo '			[aliases: teardown shutdown]'
+echo ''
+echo '	<empty>:	when no command specified, run the remaining command line '
+echo '			in a chroot shell'
+echo ''
+echo 'Specialized commands:'
+echo '	init *: 	first run setup (accepts -f for force)'
+echo '			[aliases: initialize]'
+echo ''
+echo '	issetup:	return status 0 if setup, 1 if not'
+echo '			[aliases: is_setup]'
+echo '	'
+echo '	help:		this message'
+echo ''
+echo '	cd:		changes to the root of the chroot'
+echo ''
+echo ''
+echo 'Environment Variables:'
+echo '	VERBOSE		[default: true]'
+echo '	ROOT_IMAGE	[default: /sdcard/anubuntu/ubuntu.img]'
+echo '	ROOT_MOUNT	[default: /sdcard/anubuntu/mnt]'
+echo '	SETUP_USER	[default: ]'
+echo '			used only in init'
+echo '	EXTRA_PACKAGES	[default: ubuntu-standard build-essential openssh-server xrdp]'
+echo '			used only in init'
+echo ''
+}
+
+issetup() {
+	if $isSetup ; then
+		echo setup
+		exit 0
+	else
+		echo not setup
+		exit 1
+	fi
 }
 
 
@@ -283,7 +336,6 @@ run() {
 		die please run "'$MYNAME setup'" first
 	fi
 }
-
 
 
 # 
@@ -303,13 +355,16 @@ case "$1" in
 	initialize|init)
 		initialize
 		;;
-	setup|startup|start|-s)
+	setup|startup|start)
 		setup
+		;;
+	issetup|is_setup)
+		issetup
 		;;
 	teardown|shutdown|stop)
 		teardown
 		;;
-	help|-h|--help)
+	help|-h|--help|-?)
 		help
 		;;
 	cd)
