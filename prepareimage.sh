@@ -61,7 +61,8 @@ dd if=/dev/zero of="$IMG_FILE" seek=$realsize bs=1 count=1
 
 # Build a filesystem
 echo Creating filesystem
-mkfs.ext4 -F "$IMG_FILE"
+echo mke2fs -F "$IMG_FILE"
+mke2fs -F "$IMG_FILE"
 
 # Make the temporary directory
 mkdir "$TMP_DIR"
@@ -79,6 +80,7 @@ echo "nameserver 8.8.8.8" | sudo tee "$TMP_DIR"/etc/resolv.conf
 echo "nameserver 8.8.4.4" | sudo tee -a "$TMP_DIR"/etc/resolv.conf
 echo "android" | sudo tee "$TMP_DIR"/etc/hostname
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ $RELEASE main restricted universe multiverse" | sudo tee "$TMP_DIR"/etc/apt/sources.list
+exit 1
 echo "127.0.0.1 localhost android" | sudo tee "$TMP_DIR"/etc/hosts
 
 # Unmount

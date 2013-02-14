@@ -45,7 +45,7 @@ else
 fi
 
 if [ -z "$VERBOSE" ]; then
-	VERBOSE=false
+	VERBOSE=true
 fi
 
 export PATH=/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:/system/xbin:/system/bin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
@@ -234,9 +234,6 @@ download() {
 	msg urlFile=$urlFile
 	msg description=$description
 
-	die foo
-	
-
 	localDir=$(dirname "$ROOT_IMAGE")
 
 	md5url="${urlBase}/${urlFile}.md5?raw=true"
@@ -251,7 +248,7 @@ download() {
 
 		msg downloading "$local"
 
-		#dalvikvm -cp $dfetch dfetch "$local" "$url"
+		dalvikvm -cp $dfetch dfetch "$local" "$url"
 	done
 
 	msg concatenating and decompressing ...
