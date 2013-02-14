@@ -24,7 +24,7 @@ die() {
 # Confirmation message
 readYesOrDie() {
 	if ! $FORCE ; then
-		echo '***' $*
+		echo -n "*** $* [yes|no] "
 		read answer
 		case "$answer" in
 			yes|y)
@@ -182,6 +182,93 @@ initialize() {
 	msg end init
 }
 
+
+#
+# download -> download the base image
+#
+download() {
+	if $isSetup && ! $FORCE ; then
+		die looks like setup already run and FORCE '(-f)' not set
+	fi
+
+	if [ -f "$ROOT_IMAGE" ]; then
+		readYesOrDie you already have $ROOT_IMAGE and FORCE '(-f)' not set.  are you sure you want to overwrite the current file?
+	fi
+
+	dfetch=$($BBOX dirname "$0")/dfetch.jar
+
+	manifestUrl="https://github.com/nealhardesty/anubuntu-images/blob/master/MANIFEST.csv?raw=true"
+	urlBase="https://github.com/nealhardesty/anubuntu-images/blob/master"
+
+	msg downloading manifest
+	manifest=`dalvikvm -cp $dfetch dfetch - "$manifestUrl" 2> /dev/null`
+
+	if [ -z "$IMAGE_SELECT" ]; then
+		echo You must select a base image to use by typing the corresponding number:
+		count=0
+		echo "$manifest" | while read -r line; do
+			echo $count : $line
+			count=$((count + 1))
+		done
+		read imageSelectIndex
+	else
+		imageSelectionIndex=$IMAGE_SELECT
+	fi
+
+	msg imageSelectIndex = $imageSelectIndex
+
+	count=0;
+	manifestLine=`echo "$manifest" | while read -r line; do
+		if [ "$count" == "$imageSelectIndex" ]; then
+			echo $line
+			break
+		fi
+		count=$((count + 1))
+	done`
+	msg got oline: $manifestLine
+
+	chunks=`echo $manifestLine |cut -d ',' -f 2`
+	urlFile=`echo $manifestLine |cut -d ',' -f 1`
+	description=`echo $manifestLine |cut -d ',' -f 3`
+	msg chunks=$chunks
+	msg urlFile=$urlFile
+	msg description=$description
+
+	die foo
+	
+
+	localDir=$(dirname "$ROOT_IMAGE")
+
+	md5url="${urlBase}/${urlFile}.md5?raw=true"
+	md5file="${localDir}/${urlFile}.md5"
+
+	msg downloading md5 checksum hash to ${md5file}
+	dalvikvm -cp $dfetch dfetch "$md5file" "$md5url" || die can not download ${md5url}
+
+	for i in $(seq 0 $(($chunks - 1))); do
+		url="${urlBase}/${urlFile}.gz.${i}?raw=true"
+		local="${localDir}/${urlFile}.${i}"
+
+		msg downloading "$local"
+
+		#dalvikvm -cp $dfetch dfetch "$local" "$url"
+	done
+
+	msg concatenating and decompressing ...
+	$BBOX cat ${localDir}/${urlFile}.? |gunzip > "${localDir}/$urlFile"
+
+	$BBOX md5sum -c -s $md5file || die $md5file md5 checksum failed
+
+	mv "$localDir/$urlFile" "$ROOT_IMAGE"
+
+	msg remove temporary files
+	rm ${localDir}/${urlFile}.?
+	rm ${md5file}
+
+	msg download complete
+	msg "you should now run '$MYNAME init'"
+}
+
 #
 # setup -> needs to be run before a shell is created
 #
@@ -310,6 +397,8 @@ echo '	SETUP_USER	[default: ]'
 echo '			used only in init'
 echo '	EXTRA_PACKAGES	[default: ubuntu-standard build-essential openssh-server xrdp]'
 echo '			used only in init'
+echo '	IMAGE_SELECT	[default: ]'
+echo '			used only in download'
 echo ''
 }
 
@@ -354,6 +443,9 @@ esac
 case "$1" in
 	initialize|init)
 		initialize
+		;;
+	download)
+		download
 		;;
 	setup|startup|start)
 		setup

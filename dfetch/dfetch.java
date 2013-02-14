@@ -22,34 +22,28 @@ class dfetch {
 		try {
 			String outputFilename = args[0];
 
-			boolean isTargetGzipped = likelyGzipped(outputFilename);
-
 			List<URL> urls = new LinkedList<URL>();
 
-			boolean isSourceGzipped = true;
 			for(int i=1;i<args.length;i++) {
 				String urlPath = args[i];
 				urls.add(new URL(urlPath));
-
-				// if any are not gzipped, then we assume none need decompression
-				if(false == likelyGzipped(urlPath))
-					isSourceGzipped = false;
 			}
 
-			boolean shouldGunzip = shouldGunzip(isSourceGzipped, isTargetGzipped);
-
-			fetch(outputFilename, urls, shouldGunzip);
+			fetch(outputFilename, urls);
 
 		} catch (MalformedURLException muex) {
 			muex.printStackTrace();
 			System.exit(1);
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		} catch (IOException ioex) {
+			ioex.printStackTrace();
 			System.exit(2);
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+			System.exit(3);
 		}
 	}
 
-	private static String fetch(String outputFilename, List<URL> urls, boolean shouldGunzip) 
+	private static String fetch(String outputFilename, List<URL> urls) 
 		throws IOException {
 
 		List<InputStream> streams = new LinkedList<InputStream>();
@@ -61,9 +55,6 @@ class dfetch {
 				streams.add(ucon.getInputStream());
 			}
 			in = new SequenceInputStream(Collections.enumeration(streams));
-			if(shouldGunzip) {
-				in = new GZIPInputStream(in);
-			}
 			if(outputFilename.equals("-")) {
 				fout = System.out;
 			} else {
@@ -108,26 +99,11 @@ class dfetch {
 		if(bytes < 1024) 
 			return "" + bytes + "b";
 		else if(bytes < (1024 * 1024))
-			return "" + bytes / 1024 + "kb";
+			return "" + (long)Math.ceil(bytes / 1024.0) + "kb";
 		else if(bytes < (1024 * 1024 * 1024))
-			return "" + bytes / (1024 * 1024) + "mb";
+			return "" + bytes / (long)Math.ceil(1024.0 * 1024.0) + "mb";
 		else
-			return "" + bytes / (1024 * 1024 * 1024) + "gb";
-	}
-
-	/**
-	 * If the source name is gzipped, and the target name is NOT, then we should decompress on the fly
-	 */
-	private static boolean shouldGunzip(boolean isSourceGzipped, boolean isTargetGzipped) {
-		return(true == isSourceGzipped && false == isTargetGzipped);
-	}
-
-	private static boolean likelyGzipped(String path) {
-		return(path.toLowerCase().contains(".gz"));
-	}
-	
-	private static boolean likelyGzipped(URL url) {
-		return(likelyGzipped(url.getFile()));
+			return "" + bytes / (long)Math.ceil(1024.0 * 1024.0 * 1024.0) + "gb";
 	}
 
 	private static void usage() {
