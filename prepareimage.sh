@@ -79,6 +79,7 @@ sudo debootstrap --arch "$ARCH" --variant=minbase --foreign "$RELEASE" "$TMP_DIR
 echo "nameserver 8.8.8.8" | sudo tee "$TMP_DIR"/etc/resolv.conf
 echo "nameserver 8.8.4.4" | sudo tee -a "$TMP_DIR"/etc/resolv.conf
 echo "android" | sudo tee "$TMP_DIR"/etc/hostname
+echo "$RELEASE" | sudo tee "$TMP_DIR"/etc/ubuntu_version
 echo "deb http://ports.ubuntu.com/ubuntu-ports/ $RELEASE main restricted universe multiverse" | sudo tee "$TMP_DIR"/etc/apt/sources.list
 echo "127.0.0.1 localhost android" | sudo tee "$TMP_DIR"/etc/hosts
 

@@ -158,18 +158,27 @@ initialize() {
 	msg /bin/ln -sf /bin/true /sbin/initctl
 	doChroot /bin/ln -sf /bin/true /sbin/initctl
 
+	msg fixing up sources.list
+	msg /usr/sbin/dpkg-divert --local --rename --add /etc/apt/sources.list
+	doChroot /usr/sbin/dpkg-divert --local --rename --add /etc/apt/sources.list
+
+	# NOTE: this is set by our prepareimage.sh script, not standard in ubuntu
+	release=`cat "$ROOT_MOUNT"/etc/ubuntu_version`
+	echo "deb http://ports.ubuntu.com/ubuntu-ports/ $release main restricted universe multiverse"
+
 	msg running apt-get autoclean
 	doChroot /usr/bin/apt-get autoclean
 	msg running apt-get update
 	doChroot /usr/bin/apt-get update
+	msg running apt-get upgrade
+	doChroot /usr/bin/apt-get upgrade
 
-	msg creating group inet
-	doChroot /usr/sbin/groupadd -g 3004 inet
+	createGroups
 
 	if [ ! -z "$SETUP_USER" ]; then
 		# https://blog.tuinslak.org/socket-permission-denied
-		msg creating $SETUP_USER
-		doChroot /usr/sbin/useradd -s /bin/bash -G inet -m $SETUP_USER
+		msg creating user $SETUP_USER
+		doChroot /usr/sbin/useradd -s /bin/bash -G android_net_raw -m $SETUP_USER
 	fi
 
 	if [ ! -z "$EXTRA_PACKAGES" ]; then
@@ -180,6 +189,73 @@ initialize() {
 	msg first setup complete
 
 	msg end init
+}
+
+# create some groups in the chroot to mirror the android system
+createGroups() {
+	msg creating groups to mirror the android groups
+	# these are hard coded in the kernel and bionic:
+
+	msg creating group android_system
+	doChroot /usr/sbin/groupadd -g 1000 android_system
+	msg creating group android_radio
+	doChroot /usr/sbin/groupadd -g 1001 android_radio
+	msg creating group android_bluetooth
+	doChroot /usr/sbin/groupadd -g 1002 android_bluetooth
+	msg creating group android_graphics
+	doChroot /usr/sbin/groupadd -g 1003 android_graphics
+	msg creating group android_input
+	doChroot /usr/sbin/groupadd -g 1004 android_input
+	msg creating group android_audio
+	doChroot /usr/sbin/groupadd -g 1005 android_audio
+	msg creating group android_camera
+	doChroot /usr/sbin/groupadd -g 1006 android_camera
+	msg creating group android_log
+	doChroot /usr/sbin/groupadd -g 1007 android_log
+	msg creating group android_compass
+	doChroot /usr/sbin/groupadd -g 1008 android_compass
+	msg creating group android_mount
+	doChroot /usr/sbin/groupadd -g 1009 android_mount
+	msg creating group android_wifi
+	doChroot /usr/sbin/groupadd -g 1010 android_wifi
+	msg creating group android_adb
+	doChroot /usr/sbin/groupadd -g 1011 android_adb
+	msg creating group android_install
+	doChroot /usr/sbin/groupadd -g 1012 android_install
+	msg creating group android_media
+	doChroot /usr/sbin/groupadd -g 1013 android_media
+	msg creating group android_dhcp
+	doChroot /usr/sbin/groupadd -g 1014 android_dhcp
+	msg creating group android_sdcard_rw
+	doChroot /usr/sbin/groupadd -g 1015 android_rw
+	msg creating group android_vpn
+	doChroot /usr/sbin/groupadd -g 1016 android_vpn
+	msg creating group android_keystore
+	doChroot /usr/sbin/groupadd -g 1017 android_keystore
+
+	msg creating group android_shell
+	doChroot /usr/sbin/groupadd -g 2000 android_shell
+	msg creating group android_cache
+	doChroot /usr/sbin/groupadd -g 2001 android_cache
+	msg creating group android_diag
+	doChroot /usr/sbin/groupadd -g 2002 android_diag
+
+	# These have very special meanings to the kernel
+	msg creating group android_net_bt_admin
+	doChroot /usr/sbin/groupadd -g 3001 android_net_bt_admin
+	msg creating group android_net_bt
+	doChroot /usr/sbin/groupadd -g 3002 android_net_bt
+	msg creating group android_inet
+	doChroot /usr/sbin/groupadd -g 3003 android_inet
+	msg creating group android_net_raw
+	doChroot /usr/sbin/groupadd -g 3004 android_net_raw
+	msg creating group android_net_admin
+	doChroot /usr/sbin/groupadd -g 3005 android_net_admin
+
+	msg creating group android_misc
+	doChroot /usr/sbin/groupadd -g 3005 android_misc
+	msg creating group android_nobody
+	doChroot /usr/sbin/groupadd -g 3005 android_nobody
 }
 
 
@@ -225,7 +301,6 @@ download() {
 		fi
 		count=$((count + 1))
 	done`
-	msg got oline: $manifestLine
 
 	chunks=`echo $manifestLine |cut -d ',' -f 2`
 	urlFile=`echo $manifestLine |cut -d ',' -f 1`
@@ -286,7 +361,7 @@ setup() {
 
 	msg "mount $ROOT_IMAGE on $ROOT_MOUNT using $LOOP_DEVICE"
 	$BBOX losetup "$LOOP_DEVICE" "$ROOT_IMAGE" || die failed to losetup $ROOT_IMAGE on $ROOT_MOUNT using $LOOP_DEVICE
-	$BBOX mount -t ext4 -o noatime,nodiratime,dev,exec "$LOOP_DEVICE" "$ROOT_MOUNT" || die failed to mount $LOOP_DEVICE on $ROOT_MOUNT
+	$BBOX mount -t ext2 -o noatime,nodiratime,dev,exec "$LOOP_DEVICE" "$ROOT_MOUNT" || die failed to mount $LOOP_DEVICE on $ROOT_MOUNT
 	msg mount $ROOT_MOUNT/proc
 	$BBOX mount -t proc proc "$ROOT_MOUNT"/proc || msg failed to mount /proc
 	msg mount $ROOT_MOUNT/sys
