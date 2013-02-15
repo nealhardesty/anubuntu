@@ -2,7 +2,7 @@
 # anubuntu.sh -- main setup/run script for anubuntu
 
 #
-# Copyright 2013 - Neal Hardesty - All rights reserved
+# Copyright 2013 - Neal Hardesty
 #
 
 MYNAME=$(basename $0)
@@ -51,8 +51,8 @@ fi
 export PATH=/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin:/system/xbin:/system/bin:/usr/sbin:/bin:/usr/bin:/usr/local/bin
 export HOME=/root
 export SHELL=/bin/bash
+# Kinda a cheat because 'losetup -f' is wonky on android, and 'losetup -d' sometimes fails
 LOOP_DEVICE_MINOR=$(($RANDOM%254))
-#LOOP_DEVICE_MINOR=234
 LOOP_DEVICE="/dev/block/loop$LOOP_DEVICE_MINOR"
 export ROOT_DEFAULT="/sdcard/anubuntu"
 if [ -z "$PS1" ]; then export PS1='\$'; fi
@@ -78,7 +78,7 @@ ROOT_MOUNT=$(realpath "$ROOT_MOUNT")
 # cf https://help.ubuntu.com/community/MetaPackages
 if [ -z "$EXTRA_PACKAGES" ]; then
 	#export EXTRA_PACKAGES="openssh-server ubuntu-standard ubuntu-desktop build-essential"
-	export EXTRA_PACKAGES="ubuntu-standard build-essential openssh-server xrdp"
+	export EXTRA_PACKAGES="ubuntu-standard build-essential sudo openssh-server xrdp"
 fi
 
 # Check for root
@@ -126,6 +126,9 @@ initialize() {
 
 	if $isSetup && ! $FORCE ; then
 		die it looks like you have already run setup, no need to initialize.
+	elif $isSetup; then
+		msg attempting to teardown setup before initialize.
+		teardown
 	fi
 
 	msg copy $MYNAME to $TARGET_PATH
@@ -146,7 +149,6 @@ initialize() {
 
 		msg running /debootstrap/debootstrap --second-stage
 		doChroot /debootstrap/debootstrap --second-stage
-
 	else
 		readYesOrDie 'It looks like you have already run init, are you sure you wish to continue?'
 		msg continuing...
@@ -164,14 +166,26 @@ initialize() {
 
 	# NOTE: this is set by our prepareimage.sh script, not standard in ubuntu
 	release=`cat "$ROOT_MOUNT"/etc/ubuntu_version`
-	echo "deb http://ports.ubuntu.com/ubuntu-ports/ $release main restricted universe multiverse"
+	echo "deb http://ports.ubuntu.com/ubuntu-ports/ $release main restricted universe multiverse" > "$ROOT_MOUNT"/etc/apt/sources.list
 
 	msg running apt-get autoclean
 	doChroot /usr/bin/apt-get autoclean
 	msg running apt-get update
 	doChroot /usr/bin/apt-get update
-	msg running apt-get upgrade
-	doChroot /usr/bin/apt-get upgrade
+
+	msg configuring locales
+	doChroot /usr/bin/apt-get install -y language-pack-en-base
+	doChroot /usr/sbin/dpkg-reconfigure locales
+
+	timezone='US/Pacific'
+	if [ ! -z "$TIMEZONE" ]; then
+		timezone="$TIMEZONE"
+	fi
+	msg setting timezone to "'$timezone'"
+	echo "$timezone" > "$ROOT_MOUNT"/etc/timezone
+
+	msg running apt-get upgrade -y
+	doChroot /usr/bin/apt-get upgrade -y
 
 	createGroups
 
@@ -187,6 +201,8 @@ initialize() {
 	fi
 
 	msg first setup complete
+
+	msg you may now start a shell by typing in 'anubuntu'
 
 	msg end init
 }
@@ -253,9 +269,12 @@ createGroups() {
 	doChroot /usr/sbin/groupadd -g 3005 android_net_admin
 
 	msg creating group android_misc
-	doChroot /usr/sbin/groupadd -g 3005 android_misc
+	doChroot /usr/sbin/groupadd -g 9998 android_misc
 	msg creating group android_nobody
-	doChroot /usr/sbin/groupadd -g 3005 android_nobody
+	doChroot /usr/sbin/groupadd -g 9999 android_nobody
+
+	msg creating user shell
+	doChroot /usr/sbin/useradd -u 2000 -g 2000 -G 1003,1004,1007,1009,1011,1015,3001,3002,3003 shell
 }
 
 
@@ -265,6 +284,9 @@ createGroups() {
 download() {
 	if $isSetup && ! $FORCE ; then
 		die looks like setup already run and FORCE '(-f)' not set
+	elif $isSetup; then
+		msg attempting to teardown setup before re-download.
+		teardown
 	fi
 
 	if [ -f "$ROOT_IMAGE" ]; then
@@ -280,13 +302,17 @@ download() {
 	manifest=`dalvikvm -cp $dfetch dfetch - "$manifestUrl" 2> /dev/null`
 
 	if [ -z "$IMAGE_SELECT" ]; then
-		echo You must select a base image to use by typing the corresponding number:
+		echo You must select a base image to use by typing the corresponding number [default 0]:
 		count=0
 		echo "$manifest" | while read -r line; do
 			echo $count : $line
 			count=$((count + 1))
 		done
 		read imageSelectIndex
+
+		if [ -z "$imageSelectIndex" ]; then
+			imageSelectIndex=0
+		fi
 	else
 		imageSelectionIndex=$IMAGE_SELECT
 	fi
@@ -392,6 +418,8 @@ setup() {
 		doChroot /bin/bash /etc/rc.local
 	fi
 
+	msg you may now start a shell by typing in 'anubuntu'
+
 	msg end setup
 }
 
@@ -447,6 +475,10 @@ echo '	<empty>:	when no command specified, run the remaining command line '
 echo '			in a chroot shell'
 echo ''
 echo 'Specialized commands:'
+echo '	download *:	(re)download the base image.  (accepts -f for force)'
+echo '			warning: this is quite destructive!'
+echo '			[aliases: downld]'
+echo ''
 echo '	init *: 	first run setup (accepts -f for force)'
 echo '			[aliases: initialize]'
 echo ''
@@ -458,16 +490,24 @@ echo ''
 echo '	cd:		changes to the root of the chroot'
 echo ''
 echo ''
+echo '		commands marked with a star (*) require you to be root (use "su")'
+echo ''
+echo ''
 echo 'Environment Variables:'
 echo '	VERBOSE		[default: true]'
+echo '			if set be more verbose about everything'
 echo '	ROOT_IMAGE	[default: /sdcard/anubuntu/ubuntu.img]'
+echo '			set the location of the ext2 image file'
 echo '	ROOT_MOUNT	[default: /sdcard/anubuntu/mnt]'
+echo '			set the location to mount the anubuntu root to'
 echo '	SETUP_USER	[default: ]'
-echo '			used only in init'
+echo '			used in init to add a user with no password'
 echo '	EXTRA_PACKAGES	[default: ubuntu-standard build-essential openssh-server xrdp]'
-echo '			used only in init'
+echo '			used in init to automatically add packages'
+echo '	TIMEZONE	[default: US/Pacific]'
+echo '			used in init to set the default timezone'
 echo '	IMAGE_SELECT	[default: ]'
-echo '			used only in download'
+echo '			used only in download to preselect the image number'
 echo ''
 }
 
@@ -487,6 +527,7 @@ issetup() {
 #
 run() {
 	if $isSetup ; then	
+		checkRootOrDie
 		msg Welcome to anubuntu
 		msg ""
 		doChroot $*
@@ -513,7 +554,7 @@ case "$1" in
 	initialize|init)
 		initialize
 		;;
-	download)
+	download|downld)
 		download
 		;;
 	setup|startup|start)
