@@ -25,16 +25,16 @@ public class Shell {
 	private byte[] NEWLINE = "\n".getBytes();
 
 	public Shell() throws IOException {
-		this("sh", null);
+		this(null);
 	}
 	
 	public Shell(Map<String, String> environment) throws IOException {
-		this("sh", environment);
+		this(environment, "sh");
 	}
 
-	public Shell(String execPath, Map<String, String> environment)
+	public Shell(Map<String, String> environment, String... args)
 			throws IOException {
-		ProcessBuilder pb = new ProcessBuilder(execPath);
+		ProcessBuilder pb = new ProcessBuilder(args);
 		pb.redirectErrorStream(true);
 		initSaneEnvironment(pb.environment());
 		if (environment != null) {
@@ -108,8 +108,12 @@ public class Shell {
 	}
 
 	// can be overidden() {
-	protected void teardown() throws IOException {
-		send("exit");
+	protected void teardown() {
+		try {
+			send("exit");
+		} catch (IOException iex) {
+			// ...
+		}
 	}
 
 	public void send(String line) throws IOException {
@@ -133,6 +137,7 @@ public class Shell {
 		} 
 		if(false == isOpen) {
 			this.exitCode = (short)exitCode;
+			notifyAll(); // notify anybody calling waitForExit() below
 		}
 		return isOpen;
 	}
@@ -142,6 +147,15 @@ public class Shell {
 	 */
 	public boolean isRunning() {
 		return exitCode < 0;
+	}
+	
+	public short waitForExit() {
+		try {
+			return (short)shell.waitFor();
+		} catch (InterruptedException iex) {
+			Log.e("Shell", "waitForExit", iex);
+		}
+		return -1;
 	}
 
 	public short getExitCode() {

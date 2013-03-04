@@ -5,10 +5,10 @@ import java.util.Map;
 
 public class SuperuserShell extends Shell {
 	public SuperuserShell() throws IOException {
-		super("su", null);
+		super(null, "su");
 	}
 	public SuperuserShell(Map<String, String> environment)
 			throws IOException {
-		super("su", environment);
+		super(environment, "su");
 	}
 }

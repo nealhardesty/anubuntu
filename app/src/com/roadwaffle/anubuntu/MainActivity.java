@@ -1,12 +1,10 @@
 package com.roadwaffle.anubuntu;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -26,18 +24,8 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
-		if(isFirstSetup()) {
-			log("MainActivity: This appears to be your first run.  Starting Setup Wizard.");
-			Intent setupIntent = new Intent(this, SetupActivity.class);
-			startActivity(setupIntent);
-		}
-		log("AnUbuntu started at " + (new Date()).toString());
+		boolean foo = isRunning();
 		wireup();
-	}
-	
-	private boolean isFirstSetup() {
-		return (new File(Config.SETUP_COMPLETE).exists() == false);
 	}
 
 	private void wireup() {
@@ -48,6 +36,28 @@ public class MainActivity extends Activity {
 				onEnableSwitchClicked(v);
 			}
 		});
+	}
+	
+	private boolean isRunning() {
+		try { 
+			//Shell shell = new Shell(null, "/system/bin/sh", Config.STARTUP_SCRIPT, "issetup");
+			//shell.close();
+			//int ret = shell.waitForExit();
+			//if(ret == 0) {
+			//	return true; // environment setup
+			//} else {
+			//	return false;
+			//}
+			ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", Config.STARTUP_SCRIPT, "issetup");
+			Process p = pb.start();
+			int retcode = p.waitFor();
+			return false;
+		} catch (IOException ex) {
+			Log.e("isRunning", "Start failed", ex);
+		} catch (InterruptedException iex) {
+			Log.e("isRunning", "interrupted", iex);
+		}
+ 		return false;
 	}
 
 	@Override
@@ -62,13 +72,6 @@ public class MainActivity extends Activity {
 			// Start the chroot environment
 			try {
 				startup();
-//				shell.send("/system/bin/ls");
-//				shell.send("/system/bin/ls /sdcard");
-//				shell.send("/system/xbin/echo foo foo foo");
-//				assert(shell.isRunning());
-//				shell.send("/system/bin/id");
-//				shell.send("exit");
-//				assert(false == shell.isRunning());
 			} catch (IOException ioex) {
 				Log.e("onEnableSwitchClicked", "Start failed", ioex);
 				makeToast("Start failed");
@@ -85,13 +88,7 @@ public class MainActivity extends Activity {
 	}
 
 	private void teardown() throws IOException {
-		shell.send("exit\n");
-		shell.close();
-	}
-
-	private void startup() throws IOException {
-		shell = new SuperuserShell();
-		//shell.registerStdoutLineCallbackDefault();
+		shell.send(Config.STARTUP_SCRIPT + " stop");
 		final MainActivity that = this;
 		shell.registerStdoutLineCallback(new LineReaderCallback() {
 			public void handleLine(final String line) {
@@ -103,6 +100,25 @@ public class MainActivity extends Activity {
 				
 			}
 		});
+		shell.close();
+	}
+
+	private void startup() throws IOException {
+		shell = new SuperuserShell();
+		final MainActivity that = this;
+		shell.registerStdoutLineCallback(new LineReaderCallback() {
+			public void handleLine(final String line) {
+				runOnUiThread(new Runnable() {
+					public void run() {
+						that.log(line);
+					}
+				});
+				
+			}
+		});
+		//shell.registerStdoutLineCallbackDefault();
+		shell.send(Config.STARTUP_SCRIPT + " start");
+
 		
 		//shell.send(Config.STARTUP_SCRIPT);
 

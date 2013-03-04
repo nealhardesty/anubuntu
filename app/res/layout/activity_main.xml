@@ -40,14 +40,14 @@
         android:focusableInTouchMode="false"
         android:gravity="center_vertical|left|start"
         android:inputType="textMultiLine|textNoSuggestions"
-        android:lines="12"
+        android:lines="24"
         android:linksClickable="false"
         android:longClickable="false"
         android:scrollHorizontally="false"
         android:scrollbars="horizontal|none"
         android:textAlignment="textStart"
         android:textColor="#FFFFFF"
-        android:textSize="9sp"
+        android:textSize="12sp"
         android:typeface="monospace"
         android:visibility="visible" >
 
