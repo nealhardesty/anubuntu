@@ -409,8 +409,8 @@ setup() {
 
 	msg "build $ROOT_MOUNT/etc/mtab"
 	
-	echo "rootfs / rootfs ro,relatime 0 0" |tee "$ROOT_MOUNT"/etc/mtab
-	echo "/dev/fuse /sdcard fuse rw,noatime 0 0" |tee -a "$ROOT_MOUNT"/etc/mtab
+	echo "rootfs / rootfs ro,relatime 0 0" > "$ROOT_MOUNT"/etc/mtab
+	echo "/dev/fuse /sdcard fuse rw,noatime 0 0" >> "$ROOT_MOUNT"/etc/mtab
 
 	if [ -x "$ROOT_MOUNT"/etc/rc.local ]; then
 		# we run /etc/rc.local ONLY

@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		@SuppressWarnings("unused")
 		boolean foo = isRunning();
 		wireup();
 	}
@@ -37,7 +38,7 @@ public class MainActivity extends Activity {
 			}
 		});
 	}
-	
+	private int retCode = 123;
 	private boolean isRunning() {
 		try { 
 			//Shell shell = new Shell(null, "/system/bin/sh", Config.STARTUP_SCRIPT, "issetup");
@@ -48,10 +49,10 @@ public class MainActivity extends Activity {
 			//} else {
 			//	return false;
 			//}
-			ProcessBuilder pb = new ProcessBuilder("/system/bin/sh", Config.STARTUP_SCRIPT, "issetup");
+			ProcessBuilder pb = new ProcessBuilder("/system/xbin/su", "/system/bin/sh", Config.STARTUP_SCRIPT, "issetup");
 			Process p = pb.start();
-			int retcode = p.waitFor();
-			return false;
+			retCode = p.waitFor();
+			System.out.println(retCode);
 		} catch (IOException ex) {
 			Log.e("isRunning", "Start failed", ex);
 		} catch (InterruptedException iex) {
