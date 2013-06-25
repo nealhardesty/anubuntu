@@ -59,15 +59,19 @@ if [ -z "$PS1" ]; then export PS1='\$'; fi
 
 # this controls where we will copy this script to on init
 export TARGET_PATH=/system/xbin/anubuntu
-
 if [ -z "$ROOT_IMAGE" ]; then
 	export ROOT_IMAGE="$ROOT_DEFAULT"/ubuntu.img
 fi
+
+
 ROOT_IMAGE=$(realpath "$ROOT_IMAGE")
-if [ ! -f "$ROOT_IMAGE" ]; then
-	msg can not find root image "'$ROOT_IMAGE'"
-	die you can specify an image by setting ROOT_IMAGE
-fi
+function checkForImageOrDie() {
+	if [ ! -f "$ROOT_IMAGE" ]; then
+		msg can not find root image "'$ROOT_IMAGE'"
+		msg have you not run 'download'
+		die you can specify an alternate image by setting ROOT_IMAGE
+	fi
+}
 
 if [ -z "$ROOT_MOUNT" ]; then
 	export ROOT_MOUNT="$ROOT_DEFAULT"/mnt
@@ -121,6 +125,7 @@ doChroot() {
 #
 initialize() {
 	checkRootOrDie
+	checkForImageOrDie
 
 	msg begin init
 
@@ -372,6 +377,7 @@ download() {
 #
 setup() {
 	checkRootOrDie
+	checkForImageOrDie
 
 	if $isSetup && ! $FORCE ; then
 		die looks like setup already run and FORCE '(-f)' not set
@@ -528,6 +534,7 @@ issetup() {
 run() {
 	if $isSetup ; then	
 		checkRootOrDie
+		checkForImageOrDie
 		msg Welcome to anubuntu
 		msg ""
 		doChroot $*
