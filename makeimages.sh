@@ -32,7 +32,7 @@ declare -a distros=(\
 
 # descriptions of these distros
 declare -a distroDesc=(\
-		'Raring Ringtail 13.04 (Future Release)'\
+		'Raring Ringtail 13.04'\
 	)
 
 for distroIndex in ${!distros[@]}; do
